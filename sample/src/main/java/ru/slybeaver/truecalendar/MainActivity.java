@@ -1,5 +1,6 @@
 package ru.slybeaver.truecalendar;
 
+import android.graphics.Typeface;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -9,7 +10,9 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 
+import ru.slybeaver.slycalendarview.SlyCalendarData;
 import ru.slybeaver.slycalendarview.SlyCalendarDialog;
+import ru.slybeaver.slycalendarview.SlyCalendarView;
 
 public class MainActivity extends AppCompatActivity implements SlyCalendarDialog.Callback {
 
@@ -23,10 +26,21 @@ public class MainActivity extends AppCompatActivity implements SlyCalendarDialog
                 new SlyCalendarDialog()
                         .setSingle(false)
                         .setFirstMonday(false)
+                        .setTimeEnabled(false)
                         .setCallback(MainActivity.this)
                         .show(getSupportFragmentManager(), "TAG_SLYCALENDAR");
             }
         });
+
+        SlyCalendarView calendar = findViewById(R.id.calendar);
+        SlyCalendarData data = new SlyCalendarData();
+        data.setSingle(false);
+        calendar.setSlyCalendarData(data);
+        calendar.setBarOptionsEnabled(false);
+        calendar.setHeaderText("Select yout value here");
+        calendar.setPeriodText("Start - End");
+
+        calendar.setFontOnHeaderText(Typeface.SERIF);
     }
 
     @Override

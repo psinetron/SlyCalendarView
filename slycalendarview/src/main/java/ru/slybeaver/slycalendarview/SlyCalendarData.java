@@ -7,7 +7,7 @@ import java.util.Date;
  * Created by psinetron on 29/11/2018.
  * http://slybeaver.ru
  */
-class SlyCalendarData {
+public class SlyCalendarData {
 
     private Date showDate = null; //current showing date
     private Date selectedStartDate = null; // first selected date
@@ -18,6 +18,7 @@ class SlyCalendarData {
 
     private boolean firstMonday = true; // is first monday
     private boolean single = true;
+    private boolean timeEnabled = true;
 
     private Integer backgroundColor = null;
     private Integer headerColor = null;
@@ -145,4 +146,13 @@ class SlyCalendarData {
     public void setTimeTheme(Integer timeTheme) {
         this.timeTheme = timeTheme;
     }
+
+    public boolean isTimeEnabled() {
+        return timeEnabled;
+    }
+
+    public void setTimeEnabled(boolean timeEnabled) {
+        this.timeEnabled = timeEnabled;
+    }
+
 }

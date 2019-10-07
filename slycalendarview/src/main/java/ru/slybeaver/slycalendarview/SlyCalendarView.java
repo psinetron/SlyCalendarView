@@ -3,12 +3,14 @@ package ru.slybeaver.slycalendarview;
 import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Typeface;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
@@ -26,7 +28,7 @@ import ru.slybeaver.slycalendarview.listeners.DialogCompleteListener;
  */
 public class SlyCalendarView extends FrameLayout implements DateSelectListener {
 
-    private SlyCalendarData slyCalendarData;
+    private SlyCalendarData slyCalendarData = new SlyCalendarData();
 
     private SlyCalendarDialog.Callback callback = null;
 
@@ -34,6 +36,15 @@ public class SlyCalendarView extends FrameLayout implements DateSelectListener {
 
     private AttributeSet attrs = null;
     private int defStyleAttr = 0;
+    private ViewPager vpager;
+    private LinearLayout optionsBar;
+    private TextView cancelOption;
+    private TextView saveOption;
+    private TextView headerText;
+    private TextView timeView;
+    private TextView periodView;
+    private View previousMonth;
+    private View nextMonth;
 
 
     public SlyCalendarView(Context context) {
@@ -92,19 +103,40 @@ public class SlyCalendarView extends FrameLayout implements DateSelectListener {
 
         typedArray.recycle();
 
-        final ViewPager vpager = findViewById(R.id.content);
+        vpager = findViewById(R.id.content);
+        optionsBar = findViewById(R.id.optionsBar);
+        cancelOption = findViewById(R.id.txtCancel);
+        saveOption = findViewById(R.id.txtSave);
+        headerText = findViewById(R.id.txtYear);
+        timeView = findViewById(R.id.txtTime);
+        periodView = findViewById(R.id.txtSelectedPeriod);
+        previousMonth = findViewById(R.id.btnMonthPrev);
+        nextMonth = findViewById(R.id.btnMonthNext);
+
+
         vpager.setAdapter(new MonthPagerAdapter(slyCalendarData, this));
         vpager.setCurrentItem(vpager.getAdapter().getCount() / 2);
 
         showCalendar();
     }
 
+    public void setBarOptionsEnabled(boolean enabled) {
+        int visibility = GONE;
+
+        if (enabled) {
+            visibility = VISIBLE;
+        }
+
+        optionsBar.setVisibility(visibility);
+    }
+
     private void showCalendar() {
 
         paintCalendar();
-        showTime();
+        if (slyCalendarData.isTimeEnabled())
+            showTime();
 
-        findViewById(R.id.txtCancel).setOnClickListener(new OnClickListener() {
+        cancelOption.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (callback != null) {
@@ -116,25 +148,10 @@ public class SlyCalendarView extends FrameLayout implements DateSelectListener {
             }
         });
 
-        findViewById(R.id.txtSave).setOnClickListener(new OnClickListener() {
+        saveOption.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (callback != null) {
-                    Calendar start = null;
-                    Calendar end = null;
-                    if (slyCalendarData.getSelectedStartDate() != null) {
-                        start = Calendar.getInstance();
-                        start.setTime(slyCalendarData.getSelectedStartDate());
-                    }
-                    if (slyCalendarData.getSelectedEndDate() != null) {
-                        end = Calendar.getInstance();
-                        end.setTime(slyCalendarData.getSelectedEndDate());
-                    }
-                    callback.onDataSelected(start, end, slyCalendarData.getSelectedHour(), slyCalendarData.getSelectedMinutes());
-                }
-                if (completeListener != null) {
-                    completeListener.complete();
-                }
+                completeSelectionOnCalendar();
             }
         });
 
@@ -152,67 +169,84 @@ public class SlyCalendarView extends FrameLayout implements DateSelectListener {
             calendarEnd.setTime(slyCalendarData.getSelectedEndDate());
         }
 
-        ((TextView) findViewById(R.id.txtYear)).setText(String.valueOf(calendarStart.get(Calendar.YEAR)));
-
 
         if (calendarEnd == null) {
-            ((TextView) findViewById(R.id.txtSelectedPeriod)).setText(
+            periodView.setText(
                     new SimpleDateFormat("EE, dd MMMM", Locale.getDefault()).format(calendarStart.getTime())
             );
         } else {
             if (calendarStart.get(Calendar.MONTH) == calendarEnd.get(Calendar.MONTH)) {
-                ((TextView) findViewById(R.id.txtSelectedPeriod)).setText(
+                periodView.setText(
                         getContext().getString(R.string.slycalendar_dates_period, new SimpleDateFormat("EE, dd", Locale.getDefault()).format(calendarStart.getTime()), new SimpleDateFormat("EE, dd MMM", Locale.getDefault()).format(calendarEnd.getTime()))
                 );
             } else {
-                ((TextView) findViewById(R.id.txtSelectedPeriod)).setText(
+                periodView.setText(
                         getContext().getString(R.string.slycalendar_dates_period, new SimpleDateFormat("EE, dd MMM", Locale.getDefault()).format(calendarStart.getTime()), new SimpleDateFormat("EE, dd MMM", Locale.getDefault()).format(calendarEnd.getTime()))
                 );
             }
         }
 
 
-        findViewById(R.id.btnMonthPrev).setOnClickListener(new OnClickListener() {
+        previousMonth.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                ViewPager vpager = findViewById(R.id.content);
-                vpager.setCurrentItem(vpager.getCurrentItem()-1);
+                vpager.setCurrentItem(vpager.getCurrentItem() - 1);
             }
         });
 
-        findViewById(R.id.btnMonthNext).setOnClickListener(new OnClickListener() {
+        nextMonth.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                ViewPager vpager = findViewById(R.id.content);
-                vpager.setCurrentItem(vpager.getCurrentItem()+1);
+
+                vpager.setCurrentItem(vpager.getCurrentItem() + 1);
             }
         });
 
-        findViewById(R.id.txtTime).setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
 
-                int style = R.style.SlyCalendarTimeDialogTheme;
-                if (slyCalendarData.getTimeTheme() != null) {
-                    style = slyCalendarData.getTimeTheme();
-                }
+        if (slyCalendarData.isTimeEnabled())
+            timeView.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
 
-                TimePickerDialog tpd = new TimePickerDialog(getContext(), style, new TimePickerDialog.OnTimeSetListener() {
-                    @Override
-                    public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-                        slyCalendarData.setSelectedHour(hourOfDay);
-                        slyCalendarData.setSelectedMinutes(minute);
-                        showTime();
+                    int style = R.style.SlyCalendarTimeDialogTheme;
+                    if (slyCalendarData.getTimeTheme() != null) {
+                        style = slyCalendarData.getTimeTheme();
                     }
-                }, slyCalendarData.getSelectedHour(), slyCalendarData.getSelectedMinutes(), true);
-                tpd.show();
-            }
-        });
 
-        ViewPager vpager = findViewById(R.id.content);
+                    TimePickerDialog tpd = new TimePickerDialog(getContext(), style, new TimePickerDialog.OnTimeSetListener() {
+                        @Override
+                        public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+                            slyCalendarData.setSelectedHour(hourOfDay);
+                            slyCalendarData.setSelectedMinutes(minute);
+                            showTime();
+                        }
+                    }, slyCalendarData.getSelectedHour(), slyCalendarData.getSelectedMinutes(), true);
+                    tpd.show();
+                }
+            });
+
         vpager.getAdapter().notifyDataSetChanged();
         vpager.invalidate();
 
+    }
+
+    public void completeSelectionOnCalendar() {
+        if (callback != null) {
+            Calendar start = null;
+            Calendar end = null;
+            if (slyCalendarData.getSelectedStartDate() != null) {
+                start = Calendar.getInstance();
+                start.setTime(slyCalendarData.getSelectedStartDate());
+            }
+            if (slyCalendarData.getSelectedEndDate() != null) {
+                end = Calendar.getInstance();
+                end.setTime(slyCalendarData.getSelectedEndDate());
+            }
+            callback.onDataSelected(start, end, slyCalendarData.getSelectedHour(), slyCalendarData.getSelectedMinutes());
+        }
+        if (completeListener != null) {
+            completeListener.complete();
+        }
     }
 
     @Override
@@ -246,6 +280,32 @@ public class SlyCalendarView extends FrameLayout implements DateSelectListener {
         }
     }
 
+    public void setHeaderText(String value) {
+        headerText.setText(value);
+    }
+
+    public void setPeriodText(String value) {
+        periodView.setText(value);
+    }
+
+    public void setFontOnHeaderText(Typeface typeface) {
+        headerText.setTypeface(typeface);
+    }
+
+    public void setFontOnPeriodTime(Typeface typeface) {
+        periodView.setTypeface(typeface);
+    }
+
+
+    public boolean hasAllDatesBeenSelected() {
+
+        if (slyCalendarData.isSingle()) {
+            return slyCalendarData.getSelectedStartDate() != null;
+        }
+        return slyCalendarData.getSelectedStartDate() != null && slyCalendarData.getSelectedEndDate() != null;
+
+    }
+
     @Override
     public void dateLongSelect(Date selectedDate) {
         slyCalendarData.setSelectedEndDate(null);
@@ -256,9 +316,9 @@ public class SlyCalendarView extends FrameLayout implements DateSelectListener {
     private void paintCalendar() {
         findViewById(R.id.mainFrame).setBackgroundColor(slyCalendarData.getBackgroundColor());
         findViewById(R.id.headerView).setBackgroundColor(slyCalendarData.getHeaderColor());
-        ((TextView) findViewById(R.id.txtYear)).setTextColor(slyCalendarData.getHeaderTextColor());
-        ((TextView) findViewById(R.id.txtSelectedPeriod)).setTextColor(slyCalendarData.getHeaderTextColor());
-        ((TextView) findViewById(R.id.txtTime)).setTextColor(slyCalendarData.getHeaderColor());
+        headerText.setTextColor(slyCalendarData.getHeaderTextColor());
+        periodView.setTextColor(slyCalendarData.getHeaderTextColor());
+        timeView.setTextColor(slyCalendarData.getHeaderColor());
 
     }
 
@@ -267,7 +327,7 @@ public class SlyCalendarView extends FrameLayout implements DateSelectListener {
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.HOUR_OF_DAY, slyCalendarData.getSelectedHour());
         calendar.set(Calendar.MINUTE, slyCalendarData.getSelectedMinutes());
-        ((TextView) findViewById(R.id.txtTime)).setText(
+        timeView.setText(
                 new SimpleDateFormat("HH:mm", Locale.getDefault()).format(calendar.getTime())
         );
 
